@@ -1,0 +1,23 @@
+FROM public.ecr.aws/lambda/python:3.12
+
+RUN dnf install -y \
+    libXcomposite libXcursor libXdamage libXext libXi libXtst \
+    nss nss-tools atk cups-libs libdrm pango alsa-lib \
+    at-spi2-atk gtk3 mesa-libgbm libxkbcommon \
+    xorg-x11-server-Xvfb wget unzip \
+    && dnf clean all
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+RUN mkdir -p /ms-playwright
+
+RUN pip install playwright
+RUN playwright install chromium
+
+RUN chmod -R 755 /ms-playwright
+
+COPY . ${LAMBDA_TASK_ROOT}
+
+CMD ["lambda_function.lambda_handler"]
