@@ -26,3 +26,5 @@ def mark_as_notified(item_id: str):
         table.put_item(Item={"id": item_id})
     except ClientError as e:
         print("DynamoDB put_item error:", e)
+
+pass
