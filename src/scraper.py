@@ -3,9 +3,10 @@ from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 from playwright.sync_api import sync_playwright
 
-KEY_WORD    = ["収録", "再録"]
+KEY_WORD    = ["収録", "再録", "付録"]
 BASE_URL    = "https://yu-gi-oh.jp/"
 TARGET_URL  = "https://yu-gi-oh.jp/"
+
 WEBHOOK_URL = os.environ.get("WEBHOOK_URL")  # Lambda の環境変数で設定
 
 # ★ EC2 の Elastic IP を設定（例）
@@ -117,3 +118,8 @@ def run_scraper():
     except Exception as e:
         print(f"エラー発生: {str(e)}")
         return {"status": "error", "message": str(e)}
+    
+
+if __name__ == '__main__':
+    html = fetch_html_playwright(TARGET_URL)
+    print(html)
