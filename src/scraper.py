@@ -47,7 +47,7 @@ def fetch_html_playwright(url: str) -> str:
             "Accept-Language": "ja,en-US;q=0.9,en;q=0.8"
         })
 
-        page.goto(url, wait_until="networkidle")
+        page.goto(url, timeout=60000)
         html = page.content()
         browser.close()
         return html
