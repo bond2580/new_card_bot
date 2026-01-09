@@ -3,7 +3,7 @@ name: Deploy to Lambda via OIDC
 on:
   push:
     branches:
-      - new_card_bot
+      - scheduled_by_aws
 
 env:
   AWS_REGION: ap-northeast-1
