@@ -2,15 +2,14 @@ import os
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 from playwright.sync_api import sync_playwright
+from dynamodb import is_notified, mark_as_notified, trim_table_to_20
 
 KEY_WORD    = ["収録", "再録", "付録"]
 BASE_URL    = "https://yu-gi-oh.jp/"
-TARGET_URL  = "https://yu-gi-oh.jp/"
-
-WEBHOOK_URL = os.environ.get("WEBHOOK_URL")  # Lambda の環境変数で設定
+TARGET_URL  = "https://yu-gi-oh.jp/"  # Lambda の環境変数で設定
 
 # ★ EC2 の Elastic IP を設定（例）
-PROXY_SERVER = os.environ.get("proxy_server")
+PROXY_SERVER = os.environ.get("PROXY_SERVER")
 
 # -----------------------------
 # HTML取得（Cloudflare対策 + プロキシ）
@@ -106,8 +105,13 @@ def run_scraper():
             print(text, link)
 
             if text and link:
-                msg = f"【更新情報】\n{text}\n{link}"
-                results.append(msg)
+                # 通知済みでない新規情報の場合
+                if not is_notified(link):
+                    mark_as_notified(link)
+                    # レコードが20件を超えないようにする
+                    trim_table_to_20()
+                    msg = f"【更新情報】\n{text}\n{link}"
+                    results.append(msg)
 
         return {
             "status": "success",
@@ -118,7 +122,7 @@ def run_scraper():
     except Exception as e:
         print(f"エラー発生: {str(e)}")
         return {"status": "error", "message": str(e)}
-    
+
 
 if __name__ == '__main__':
     html = fetch_html_playwright(TARGET_URL)

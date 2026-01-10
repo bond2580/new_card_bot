@@ -3,6 +3,7 @@ import os
 from scraper import run_scraper
 from notifier import notify_discord
 from ec2 import start_ec2, stop_ec2
+
 # -----------------------------
 # 設定
 # -----------------------------
@@ -23,7 +24,7 @@ def lambda_handler(event, context):
         if results:
             notify_discord(results, WEBHOOK_URL)
         else:
-            print("スクレイピング結果なし")
+            print("新着情報なし")
     finally:
         stop_ec2()
 
@@ -36,8 +37,9 @@ if __name__ == "__main__":
         results = status.get("messages")
         print("結果結果", results)
         if results:
-            notify_discord(results, WEBHOOK_URL)
+            pass
+            # notify_discord(results, WEBHOOK_URL)
         else:
-            print("スクレイピング結果なし")
+            print("新着情報なし")
     finally:
         stop_ec2()
