@@ -1,19 +1,20 @@
 import os
 
 from scraper import run_scraper
-from notifier import notify_discord
+from notifier import notify_discord, notify_linebot
 from ec2 import start_ec2, stop_ec2
 
 # -----------------------------
 # 設定
 # -----------------------------
-WEBHOOK_URL = os.environ.get("WEBHOOK_URL") # Lambdaの環境変数で設定
+WEBHOOK_URL      = os.environ.get("WEBHOOK_URL")
+WEBHOOK_URL_LINE = "https://api.line.me/v2/bot/message/push" # Lambdaの環境変数で設定
 
 # -----------------------------
 # Lambda エントリーポイント
 # -----------------------------
-   
-    
+
+
 def lambda_handler(event, context):
 
     start_ec2()
@@ -23,6 +24,7 @@ def lambda_handler(event, context):
         results = status.get("messages")
         if results:
             notify_discord(results, WEBHOOK_URL)
+            notify_linebot(results, WEBHOOK_URL_LINE)
         else:
             print("新着情報なし")
     finally:
