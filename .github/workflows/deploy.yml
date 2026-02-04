@@ -3,12 +3,12 @@ name: Deploy to Lambda via OIDC
 on:
   push:
     branches:
-      - scheduled_by_aws
+      - scheduled_by_aws_Xscraping
 
 env:
   AWS_REGION: ap-northeast-1
-  ECR_REPOSITORY: ygo-scraper
-  LAMBDA_FUNCTION_NAME: new_card_bot
+  ECR_REPOSITORY: ygo_scraper_xscraping
+  LAMBDA_FUNCTION_NAME: new_card_bot_Xscraping
 
 jobs:
   deploy:

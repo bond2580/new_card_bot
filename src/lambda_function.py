@@ -1,6 +1,6 @@
 import os
 
-from scraper import run_scraper
+from x_scraping import run_scraper
 from notifier import notify_discord, notify_linebot
 from ec2 import start_ec2, stop_ec2
 
@@ -32,16 +32,18 @@ def lambda_handler(event, context):
 
 
 if __name__ == "__main__":
-    start_ec2()
+    # start_ec2()
     try:
         # Playwright scraper 実行
         status  = run_scraper()
+        print(status)
         results = status.get("messages")
         print("結果結果", results)
         if results:
-            pass
-            # notify_discord(results, WEBHOOK_URL)
+            notify_discord(results, WEBHOOK_URL)
+            notify_linebot(results, WEBHOOK_URL_LINE)
         else:
             print("新着情報なし")
     finally:
-        stop_ec2()
+        pass
+        # stop_ec2()
