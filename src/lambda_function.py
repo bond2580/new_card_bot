@@ -2,7 +2,6 @@ import os
 
 from x_scraping import run_scraper
 from notifier import notify_discord, notify_linebot
-from ec2 import start_ec2, stop_ec2
 
 # -----------------------------
 # 設定
@@ -16,19 +15,19 @@ WEBHOOK_URL_LINE = "https://api.line.me/v2/bot/message/push" # Lambdaの環境�
 
 
 def lambda_handler(event, context):
-
-    start_ec2()
     try:
         # Playwright scraper 実行
         status  = run_scraper()
+        print(status)
         results = status.get("messages")
         if results:
             notify_discord(results, WEBHOOK_URL)
             notify_linebot(results, WEBHOOK_URL_LINE)
         else:
             print("新着情報なし")
-    finally:
-        stop_ec2()
+    except Exception as e:
+        error_message = [e]
+        notify_linebot(error_message, WEBHOOK_URL_LINE)
 
 
 if __name__ == "__main__":
