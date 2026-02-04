@@ -51,7 +51,8 @@ def filter_tweets_by_keyword(tweets):
             tweet_url = f"https://x.com/{USER_NAME}/status/{tweet['id']}"
             card_name = re.search(r"◤(.*?)◢", text)
             card_name = card_name.group(1) if card_name else "アンノウン"
-
+            # ログ確認用
+            print(card_name, tweet_url)
             # DBに登録
             if not is_notified(tweet_url):
                 mark_as_notified(tweet_url)
