@@ -63,6 +63,19 @@ def filter_tweets_by_keyword(tweets):
     return filter_result
 
 
+def search_tweets(keywords):
+    tweets = get_latest_tweets(USER_ID)
+    results = []
+    for tweet in tweets["data"]:
+        text = tweet["text"]
+        if any(kw in text for kw in keywords) and not any(ng in text for ng in NG_WORD):
+            tweet_url = f"https://x.com/{USER_NAME}/status/{tweet['id']}"
+            card_name = re.search(r"◤(.*?)◢", text)
+            card_name = card_name.group(1) if card_name else "アンノウン"
+            results.append({"card_name": card_name, "url": tweet_url})
+    return results
+
+
 def run_scraper():
     tweets        = get_latest_tweets(USER_ID)
     filter_tweets = filter_tweets_by_keyword(tweets)
