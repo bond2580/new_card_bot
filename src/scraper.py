@@ -1,15 +1,17 @@
 import os
+import re
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 from playwright.sync_api import sync_playwright
 from dynamodb import is_notified, mark_as_notified, trim_table_to_20
 
 KEY_WORD    = ["収録", "再録", "付録"]
+NG_WORD     = ["実物", "ラッシュデュエル"]
 BASE_URL    = "https://yu-gi-oh.jp/"
 TARGET_URL  = "https://yu-gi-oh.jp/"  # Lambda の環境変数で設定
 
 # ★ EC2 の Elastic IP を設定（例）
-PROXY_SERVER = os.environ.get("PROXY_SERVER")
+# PROXY_SERVER = os.environ.get("PROXY_SERVER")
 
 # -----------------------------
 # HTML取得（Cloudflare対策 + プロキシ）
@@ -20,7 +22,7 @@ def fetch_html_playwright(url: str) -> str:
     with sync_playwright() as p:
         browser = p.chromium.launch(
             headless=True,
-            proxy={"server": PROXY_SERVER},  # ★ プロキシ設定
+            # proxy={"server": PROXY_SERVER},  # ★ プロキシ設定
             args=[
                 "--no-sandbox",
                 "--disable-setuid-sandbox",
@@ -122,6 +124,29 @@ def run_scraper():
     except Exception as e:
         print(f"エラー発生: {str(e)}")
         return {"status": "error", "message": str(e)}
+
+
+def search_tweets(keywords):
+    html = fetch_html_playwright(TARGET_URL)
+    boxes = extract_box1(html)
+
+    results = []
+    for box in boxes:
+        data = box.find("div", class_="data-content")
+        if not data:
+            continue
+        text = data.get_text(strip=True)
+
+        if not any(kw in text for kw in keywords):
+            continue
+
+        link = extract_link(box)
+        if not link:
+            continue
+
+        results.append({"card_name": text, "url": link})
+
+    return results
 
 
 if __name__ == '__main__':
