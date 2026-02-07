@@ -7,7 +7,7 @@ from dynamodb import is_notified, mark_as_notified, trim_table_to_20
 
 BEARER_TOKEN = os.environ.get("BEARER_TOKEN")
 USER_ID      = os.environ.get("X_USER_ID")
-KEY_WORD     = ["カード公開", "再録", "付録"]
+KEY_WORD     = ["カード公開", "再録", "付録", "新カード", "カードを公開"]
 NG_WORD      = ["実物", "ラッシュデュエル"]
 USER_NAME    = "YuGiOh_OCG_INFO"
 
@@ -51,10 +51,10 @@ def filter_tweets_by_keyword(tweets):
             tweet_url = f"https://x.com/{USER_NAME}/status/{tweet['id']}"
             card_name = re.search(r"◤(.*?)◢", text)
             card_name = card_name.group(1) if card_name else "アンノウン"
-            # ログ確認用
+            # 確認用
             print(card_name, tweet_url)
             # DBに登録
-            if not is_notified(tweet_url):
+            if is_notified(tweet_url) is False:
                 mark_as_notified(tweet_url)
                 trim_table_to_20()
                 filter_result["messages"].append(tweet_url)
