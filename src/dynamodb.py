@@ -1,6 +1,6 @@
 import boto3
 from botocore.exceptions import ClientError
-from datetime import datetime
+from datetime import datetime, timedelta
 
 DYNAMO_TABLE = "ygo_notified"
 dynamodb = boto3.resource("dynamodb")
@@ -29,6 +29,24 @@ def mark_as_notified(item_id: str):
         table.put_item(Item={"id": item_id, "time": timestamp})
     except ClientError as e:
         print("DynamoDB put_item error:", e)
+
+
+# -----------------------------
+# 直近N日分のURLを取得
+# -----------------------------
+def get_recent_urls(days=3):
+    threshold = int((datetime.now() - timedelta(days=days)).timestamp())
+    items = []
+    response = table.scan()
+
+    items.extend(response.get("Items", []))
+    while "LastEvaluatedKey" in response:
+        response = table.scan(ExclusiveStartKey=response["LastEvaluatedKey"])
+        items.extend(response.get("Items", []))
+
+    recent = [item for item in items if int(item["time"]) >= threshold]
+    recent_sorted = sorted(recent, key=lambda x: int(x["time"]), reverse=True)
+    return [item["id"] for item in recent_sorted]
 
 
 # ------------------------------

@@ -1,8 +1,9 @@
 import os
 import json
 
-from x_scraping import run_scraper, search_tweets
+from x_scraping import run_scraper
 from notifier import notify_discord, notify_linebot, verify_line_signature, reply_linebot
+from dynamodb import get_recent_urls
 
 # -----------------------------
 # 設定
@@ -72,19 +73,19 @@ def handle_api_gateway_event(event):
         if line_event.get("message", {}).get("type") != "text":
             continue
 
-        keyword = line_event["message"]["text"]
         reply_token = line_event["replyToken"]
 
         try:
-            results = search_tweets([keyword])
-            if results:
-                messages = [f"{r['card_name']}\n{r['url']}" for r in results]
+            urls = get_recent_urls(days=3)
+            if urls:
+                messages = ["直近3日間の新着カード情報:"]
+                messages.extend(urls)
                 reply_linebot(reply_token, messages)
             else:
-                reply_linebot(reply_token, [f"「{keyword}」に該当するカードは見つかりませんでした。"])
+                reply_linebot(reply_token, ["直近3日間の新着情報はありません。"])
         except Exception as e:
-            print(f"検索エラー: {e}")
-            reply_linebot(reply_token, ["検索中にエラーが発生しました。"])
+            print(f"DB取得エラー: {e}")
+            reply_linebot(reply_token, ["情報の取得中にエラーが発生しました。"])
 
     return {"statusCode": 200, "body": "OK"}
 
