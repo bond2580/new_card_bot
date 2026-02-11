@@ -94,7 +94,7 @@ if __name__ == "__main__":
         status = run_scraper()
         print(status)
         results = status.get("messages")
-        print("結果結果", results)
+        print("結果", results)
         if results:
             notify_discord(results, WEBHOOK_URL)
             notify_linebot(results, WEBHOOK_URL_LINE)

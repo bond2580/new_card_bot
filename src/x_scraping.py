@@ -5,30 +5,34 @@ import os
 from dynamodb import is_notified, mark_as_notified, trim_table_to_20
 
 
-BEARER_TOKEN = os.environ.get("BEARER_TOKEN")
-USER_ID      = os.environ.get("X_USER_ID")
-KEY_WORD     = ["カード公開", "再録", "付録", "新カード", "カードを公開"]
-NG_WORD      = ["実物", "ラッシュデュエル"]
-USER_NAME    = "YuGiOh_OCG_INFO"
+BEARER_TOKEN     = os.environ.get("BEARER_TOKEN")
+USER_ID_OFFICIAL = os.environ.get("X_USER_ID_OFFICIAL")
+USER_ID_JP       = os.environ.get("X_USER_ID_JP")
+KEY_WORD         = ["カード公開", "再録", "付録", "新カード", "カードを公開"]
+NG_WORD          = ["実物", "ラッシュデュエル"]
+
+USERS = [
+    {"user_id": USER_ID_OFFICIAL, "user_name": "YuGiOh_OCG_INFO"},
+    {"user_id": USER_ID_JP,       "user_name": "yu_gi_oh_jp"},
+]
+
 
 # ユーザーID取得のために1回だけ実行
-# def get_user_id(username: str) -> str:
-#     url = f"https://api.x.com/2/users/by/username/{username}"
-#     headers = {"Authorization": f"Bearer {BEARER_TOKEN}"}
-#     response = requests.get(url, headers=headers)
-#     response.raise_for_status()
-#     return response.json()["data"]["id"]
+def get_user_id(username: str) -> str:
+    url = f"https://api.x.com/2/users/by/username/{username}"
+    print(BEARER_TOKEN)
+    headers = {"Authorization": f"Bearer {BEARER_TOKEN}"}
+    response = requests.get(url, headers=headers)
+    response.raise_for_status()
+    return response.json()["data"]["id"]
 
 
-# user_id = get_user_id("YuGiOh_OCG_INFO")
-# print("user_id:", user_id)
-
-
-def get_latest_tweets(user_id: str, max_results=50):
+def get_latest_tweets(user_id: str, max_results=50) -> dict:
     url = f"https://api.x.com/2/users/{user_id}/tweets"
     params = {
         "max_results": max_results,
-        "tweet.fields": "created_at,text,id"
+        "tweet.fields": "created_at,text,id",
+        "exclude": "retweets"
     }
     headers = {"Authorization": f"Bearer {BEARER_TOKEN}"}
     response = requests.get(url, headers=headers, params=params)
@@ -36,9 +40,10 @@ def get_latest_tweets(user_id: str, max_results=50):
     return response.json()
 
 
-def filter_tweets_by_keyword(tweets):
+def filter_tweets_by_keyword(tweets, user_name):
 
     filter_result = {"messages": [], "card_name": []}
+
     for tweet in tweets["data"]:
         text = tweet["text"]
         # キーワードがあるかどうか
@@ -48,9 +53,9 @@ def filter_tweets_by_keyword(tweets):
 
         # キーワードが1つでも含まれているかつNGワードがない場合
         if (isin_kewword is True) & (isng is False):
-            tweet_url = f"https://x.com/{USER_NAME}/status/{tweet['id']}"
+            tweet_url = f"https://x.com/{user_name}/status/{tweet['id']}"
             card_name = re.search(r"◤(.*?)◢", text)
-            card_name = card_name.group(1) if card_name else "アンノウン"
+            card_name = card_name.group(1) if card_name else "カード公開"
             # 確認用
             print(card_name, tweet_url)
             # DBに登録
@@ -77,10 +82,15 @@ def search_tweets(keywords):
 
 
 def run_scraper():
-    tweets        = get_latest_tweets(USER_ID)
-    filter_tweets = filter_tweets_by_keyword(tweets)
+    all_results = {"messages": [], "card_name": []}
 
-    return filter_tweets
+    for user in USERS:
+        tweets = get_latest_tweets(user["user_id"])
+        filter_tweets = filter_tweets_by_keyword(tweets, user["user_name"])
+        all_results["messages"].extend(filter_tweets["messages"])
+        all_results["card_name"].extend(filter_tweets["card_name"])
+
+    return all_results
 
 
 if __name__ == "__main__":

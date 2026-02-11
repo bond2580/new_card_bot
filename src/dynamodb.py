@@ -1,7 +1,5 @@
 import boto3
-import os
 from botocore.exceptions import ClientError
-from boto3.dynamodb.conditions import Key
 from datetime import datetime
 
 DYNAMO_TABLE = "ygo_notified"
@@ -63,8 +61,7 @@ def trim_table_to_20(limit=20):
         for item in to_delete:
             batch.delete_item(
                 Key={
-                    "pk": item["pk"],
-                    "sk": item["sk"]
+                    "id": item["id"]
                 }
             )
 
@@ -72,4 +69,4 @@ def trim_table_to_20(limit=20):
 
 
 if __name__ == "__main__":
-    trim_table_to_20(limit=20)
+    trim_table_to_20(limit=1)
