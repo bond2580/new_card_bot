@@ -5,34 +5,28 @@ import os
 from dynamodb import is_notified, mark_as_notified, trim_table_to_20
 
 
-BEARER_TOKEN     = os.environ.get("BEARER_TOKEN")
-USER_ID_OFFICIAL = os.environ.get("X_USER_ID_OFFICIAL")
-USER_ID_JP       = os.environ.get("X_USER_ID_JP")
-KEY_WORD         = ["カード公開", "再録", "付録", "新カード", "カードを公開"]
-NG_WORD          = ["実物", "ラッシュデュエル"]
-
-USERS = [
-    {"user_id": USER_ID_OFFICIAL, "user_name": "YuGiOh_OCG_INFO"},
-    {"user_id": USER_ID_JP,       "user_name": "yu_gi_oh_jp"},
-]
+BEARER_TOKEN = os.environ.get("BEARER_TOKEN")
+USER_NAMES   = ["YuGiOh_OCG_INFO", "yu_gi_oh_jp"]
+KEY_WORD     = ["カード公開", "再録", "付録", "新カード", "カードを公開"]
+NG_WORD      = ["実物", "ラッシュデュエル"]
 
 
-# ユーザーID取得のために1回だけ実行
-def get_user_id(username: str) -> str:
-    url = f"https://api.x.com/2/users/by/username/{username}"
-    print(BEARER_TOKEN)
-    headers = {"Authorization": f"Bearer {BEARER_TOKEN}"}
-    response = requests.get(url, headers=headers)
-    response.raise_for_status()
-    return response.json()["data"]["id"]
+def build_search_query():
+    """Recent Search API用の検索クエリを構築する"""
+    user_filter    = " OR ".join([f"from:{name}" for name in USER_NAMES])
+    keyword_filter = " OR ".join(KEY_WORD)
+    ng_filter      = " ".join([f"-{word}" for word in NG_WORD])
+    return f"({user_filter}) ({keyword_filter}) {ng_filter} -is:retweet"
 
 
-def get_latest_tweets(user_id: str, max_results=20) -> dict:
-    url = f"https://api.x.com/2/users/{user_id}/tweets"
+def search_recent_tweets(max_results=20) -> dict:
+    url = "https://api.x.com/2/tweets/search/recent"
     params = {
+        "query": build_search_query(),
         "max_results": max_results,
-        "tweet.fields": "created_at,text,id",
-        "exclude": "retweets"
+        "tweet.fields": "created_at,text,id,author_id",
+        "expansions": "author_id",
+        "user.fields": "username",
     }
     headers = {"Authorization": f"Bearer {BEARER_TOKEN}"}
     response = requests.get(url, headers=headers, params=params)
@@ -40,45 +34,41 @@ def get_latest_tweets(user_id: str, max_results=20) -> dict:
     return response.json()
 
 
-def filter_tweets_by_keyword(tweets, user_name):
+def process_tweets(response):
+    """検索結果からカード情報を抽出し、未通知のものを返す"""
+    result = {"messages": [], "card_name": []}
 
-    filter_result = {"messages": [], "card_name": []}
+    if "data" not in response:
+        return result
 
-    for tweet in tweets["data"]:
-        text = tweet["text"]
-        # キーワードがあるかどうか
-        isin_kewword = any([keyword in text for keyword in KEY_WORD])
-        # NGワードがあるかどうか
-        isng         = any([ngword in text for ngword in NG_WORD])
+    # author_id → username のマッピングを作成
+    user_map = {}
+    if "includes" in response and "users" in response["includes"]:
+        for user in response["includes"]["users"]:
+            user_map[user["id"]] = user["username"]
 
-        # キーワードが1つでも含まれているかつNGワードがない場合
-        if (isin_kewword is True) & (isng is False):
-            tweet_url = f"https://x.com/{user_name}/status/{tweet['id']}"
-            card_name = re.search(r"◤(.*?)◢", text)
-            card_name = card_name.group(1) if card_name else "カード公開"
-            # 確認用
-            print(card_name, tweet_url)
-            # DBに登録
-            if is_notified(tweet_url) is False:
-                mark_as_notified(tweet_url)
-                trim_table_to_20()
-                filter_result["messages"].append(tweet_url)
-                filter_result["card_name"].append(card_name)
+    for tweet in response["data"]:
+        user_name = user_map.get(tweet["author_id"], "unknown")
+        tweet_url = f"https://x.com/{user_name}/status/{tweet['id']}"
 
-    return filter_result
+        card_name = re.search(r"◤(.*?)◢", tweet["text"])
+        card_name = card_name.group(1) if card_name else "カード公開"
+        # 確認用
+        print(card_name, tweet_url)
 
+        # DBに登録
+        if is_notified(tweet_url) is False:
+            mark_as_notified(tweet_url)
+            trim_table_to_20()
+            result["messages"].append(tweet_url)
+            result["card_name"].append(card_name)
+
+    return result
 
 
 def run_scraper():
-    all_results = {"messages": [], "card_name": []}
-
-    for user in USERS:
-        tweets = get_latest_tweets(user["user_id"])
-        filter_tweets = filter_tweets_by_keyword(tweets, user["user_name"])
-        all_results["messages"].extend(filter_tweets["messages"])
-        all_results["card_name"].extend(filter_tweets["card_name"])
-
-    return all_results
+    response = search_recent_tweets()
+    return process_tweets(response)
 
 
 if __name__ == "__main__":
