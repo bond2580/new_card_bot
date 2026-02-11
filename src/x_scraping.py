@@ -27,7 +27,7 @@ def get_user_id(username: str) -> str:
     return response.json()["data"]["id"]
 
 
-def get_latest_tweets(user_id: str, max_results=50) -> dict:
+def get_latest_tweets(user_id: str, max_results=20) -> dict:
     url = f"https://api.x.com/2/users/{user_id}/tweets"
     params = {
         "max_results": max_results,
