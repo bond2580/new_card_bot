@@ -7,7 +7,7 @@ from dynamodb import is_notified, mark_as_notified, trim_table_to_20
 
 BEARER_TOKEN = os.environ.get("BEARER_TOKEN")
 USER_NAMES   = ["YuGiOh_OCG_INFO", "yu_gi_oh_jp"]
-KEY_WORD     = ["カード公開", "再録", "付録", "新カード", "カードを公開"]
+KEY_WORD     = ["カード公開", "再録", "付録", "新カード", "カードを公開", "新たな"]
 NG_WORD      = ["実物", "ラッシュデュエル"]
 
 
