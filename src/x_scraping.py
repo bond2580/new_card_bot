@@ -1,12 +1,14 @@
 import requests
 import re
 import os
+from datetime import datetime, timezone, timedelta
 
 from dynamodb import is_notified, mark_as_notified, trim_table_to_20
 
 
-BEARER_TOKEN = os.environ.get("BEARER_TOKEN")
-USER_NAMES   = ["YuGiOh_OCG_INFO", "yu_gi_oh_jp"]
+BEARER_TOKEN  = os.environ.get("BEARER_TOKEN")
+USER_NAMES    = ["YuGiOh_OCG_INFO", "yu_gi_oh_jp"]
+LOOKBACK_MINUTES = 30  # 直近何分のツイートを取得するか
 USER_IDS = [
     os.environ.get("X_USER_ID_OFFICIAL"),
     os.environ.get("X_USER_ID_JP"),
@@ -23,6 +25,12 @@ def build_search_query():
     return f"({user_filter}) ({keyword_filter}) {ng_filter} -is:retweet"
 
 
+def _start_time_iso() -> str:
+    """現在時刻からLOOKBACK_MINUTES分前のISO8601文字列を返す"""
+    start = datetime.now(timezone.utc) - timedelta(minutes=LOOKBACK_MINUTES)
+    return start.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
 def search_recent_tweets(max_results=20) -> dict:
     url = "https://api.x.com/2/tweets/search/recent"
     params = {
@@ -31,6 +39,7 @@ def search_recent_tweets(max_results=20) -> dict:
         "tweet.fields": "created_at,text,id,author_id",
         "expansions": "author_id",
         "user.fields": "username",
+        "start_time": _start_time_iso(),
     }
     headers = {"Authorization": f"Bearer {BEARER_TOKEN}"}
     response = requests.get(url, headers=headers, params=params)
@@ -47,6 +56,7 @@ def get_user_timeline(user_id, max_results=20) -> dict:
         "expansions": "author_id",
         "user.fields": "username",
         "exclude": "retweets",
+        "start_time": _start_time_iso(),
     }
     headers = {"Authorization": f"Bearer {BEARER_TOKEN}"}
     response = requests.get(url, headers=headers, params=params)
