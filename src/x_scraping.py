@@ -14,7 +14,7 @@ USER_IDS = [
     os.environ.get("X_USER_ID_JP"),
 ]
 KEY_WORD     = ["カード公開", "再録", "付録", "新カード", "カードを公開", "新たな"]
-NG_WORD      = ["ラッシュデュエル", "カードを収録"]
+NG_WORD      = ["実物", "ラッシュデュエル", "カードを収録"]
 
 
 def build_search_query():
