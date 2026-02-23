@@ -8,13 +8,13 @@ from dynamodb import is_notified, mark_as_notified, trim_table_to_20
 
 BEARER_TOKEN  = os.environ.get("BEARER_TOKEN")
 USER_NAMES    = ["YuGiOh_OCG_INFO", "yu_gi_oh_jp"]
-LOOKBACK_MINUTES = 30  # 直近何分のツイートを取得するか
+LOOKBACK_MINUTES = 1440  # 直近何分のツイートを取得するか（EventBridgeが毎日21:07実行のため24時間）
 USER_IDS = [
     os.environ.get("X_USER_ID_OFFICIAL"),
     os.environ.get("X_USER_ID_JP"),
 ]
 KEY_WORD     = ["カード公開", "再録", "付録", "新カード", "カードを公開", "新たな"]
-NG_WORD      = ["実物", "ラッシュデュエル", "カードを収録"]
+NG_WORD      = ["ラッシュデュエル", "カードを収録"]
 
 
 def build_search_query():
