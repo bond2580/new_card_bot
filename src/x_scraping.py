@@ -13,7 +13,7 @@ USER_IDS = [
     os.environ.get("X_USER_ID_OFFICIAL"),
     os.environ.get("X_USER_ID_JP"),
 ]
-KEY_WORD     = ["カード公開", "再録", "付録", "新カード", "カードを公開", "新たな"]
+KEY_WORD     = ["カード公開", "再録", "付録", "新カード", "カードを公開", "新たな", "新テーマ"]
 NG_WORD      = ["実物", "ラッシュデュエル", "カードを収録"]
 
 
@@ -131,6 +131,8 @@ def process_tweets(response):
 
 def run_scraper():
     search_resp = search_recent_tweets()
+    if "data" in search_resp:
+        search_resp["data"] = filter_by_keywords(search_resp["data"])
 
     timeline_resps = []
     for user_id in USER_IDS:
